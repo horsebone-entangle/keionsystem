@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>部員・申請管理</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../config.js"></script>
+    <script defer src="../../app.js"></script>
+  </head>
+  <body data-page="admin">
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h1>部員・申請管理</h1>
+      </div>
+      <a class="text-link" href="../../index.html">ポータルへ</a>
+    </header>
+
+    <main class="admin-page">
+      <section class="admin-content" id="adminContent">
+        <div class="admin-toolbar">
+          <strong id="adminName"></strong>
+          <button type="button" class="secondary" id="adminLogout">ログアウト</button>
+        </div>
+
+        <section class="panel">
+          <h2>部員検索</h2>
+          <label>学籍番号・氏名・バンド名で検索<input id="memberSearchInput" placeholder="例: s240001 / 山田 / 放課後コード"></label>
+          <div class="member-search-results" id="memberSearchResults"></div>
+        </section>
+
+        <details class="panel member-list-panel">
+          <summary>部員一覧を表示</summary>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>学籍番号</th><th>氏名</th><th>権限</th><th>所属バンド</th></tr></thead>
+              <tbody id="memberListTable"></tbody>
+            </table>
+          </div>
+        </details>
+
+        <section class="panel">
+          <h2>申請一覧</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>種別</th><th>バンド</th><th>申請者</th><th>メンバー</th><th>状態</th></tr></thead>
+              <tbody id="requestTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>部員CSVアップロード</h2>
+          <p class="hint">列名: student_id,name,role,password</p>
+          <input type="file" id="memberCsv" accept=".csv,text/csv">
+          <button type="button" id="uploadCsvButton">取り込む</button>
+          <div class="message" id="csvMessage"></div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
