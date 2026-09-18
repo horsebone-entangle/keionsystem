@@ -1,0 +1,3 @@
+import fs from 'node:fs';
+export const assetFiles=['index.html','register.html','reservation.html','requests.html','admin.html','admin/manage-member/index.html','admin/manage-booking/index.html','app.js','styles.css','favicon.svg','sample-members.csv'];
+export function loadAssets(){return Object.fromEntries(assetFiles.map(file=>['/'+file,{content:fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),type:file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':file.endsWith('.svg')?'image/svg+xml':'text/csv; charset=utf-8'}]));}

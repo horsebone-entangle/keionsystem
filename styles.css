@@ -1,0 +1,849 @@
+:root {
+  --ink: #202124;
+  --muted: #677076;
+  --line: #d9dee2;
+  --paper: #f6f7f4;
+  --panel: #ffffff;
+  --accent: #19715d;
+  --accent-dark: #115344;
+  --gold: #c6922c;
+  --closed: #efc9c9;
+  --open: #b8d7aa;
+  --booked: #c6d0d8;
+  --danger: #b3261e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", sans-serif;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px clamp(16px, 4vw, 40px);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: clamp(26px, 5vw, 40px);
+}
+
+h2 {
+  margin-bottom: 12px;
+  font-size: 22px;
+}
+
+.status-pill,
+.text-link {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.inline-link {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.logout-button {
+  margin-top: 18px;
+}
+
+.portal,
+.narrow-page,
+.admin-page,
+.page-grid {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 20px clamp(12px, 4vw, 32px) 36px;
+}
+
+.portal-hero {
+  display: grid;
+  align-items: end;
+  min-height: 260px;
+  border-radius: 8px;
+  padding: clamp(22px, 5vw, 44px);
+  background:
+    linear-gradient(90deg, rgba(10, 34, 28, 0.82), rgba(10, 34, 28, 0.25)),
+    url("https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&w=1600&q=80");
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+}
+
+.portal-hero h2 {
+  max-width: 720px;
+  margin-bottom: 10px;
+  font-size: clamp(28px, 6vw, 54px);
+}
+
+.portal-hero p {
+  max-width: 600px;
+  margin-bottom: 0;
+}
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.portal-content {
+  display: grid;
+  gap: 18px;
+}
+
+.portal-card {
+  display: grid;
+  gap: 8px;
+  min-height: 148px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.portal-card span {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.portal-card strong {
+  font-size: 22px;
+}
+
+.portal-card small,
+.hint {
+  color: var(--muted);
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 18px;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 18px;
+}
+
+.section-head,
+.admin-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-head p,
+#monthLabel {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-dark);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+button:disabled:hover {
+  background: var(--accent);
+}
+
+button.secondary,
+.tiny-button.secondary {
+  background: #edf1ef;
+  color: var(--ink);
+}
+
+.tiny-button {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.month-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar {
+  display: grid;
+  gap: 14px;
+}
+
+.weekday,
+.day {
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.weekday {
+  min-height: auto;
+  background: #edf1ef;
+  font-weight: 800;
+  text-align: center;
+}
+
+.day.outside {
+  background: #f1f3f1;
+  color: #98a09a;
+}
+
+.day-tabs {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(82px, 1fr));
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.day-tab {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.day-tab:hover,
+.day-tab.active {
+  border-color: var(--accent);
+  background: #eef7f3;
+  color: var(--accent-dark);
+}
+
+.day-tab span {
+  font-size: 12px;
+}
+
+.day-tab strong {
+  font-size: 15px;
+}
+
+.day-detail {
+  padding: 14px;
+}
+
+.date-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 800;
+}
+
+.day-note {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.open-note {
+  color: var(--accent);
+}
+
+.slot-list {
+  display: grid;
+  gap: 4px;
+}
+
+.slot-list-full {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.slot-chip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 6px 7px;
+  background: var(--open);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  min-height: 42px;
+}
+
+.slot-chip.booked {
+  background: var(--booked);
+}
+
+.slot-chip:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.slot-chip.booked:disabled:hover {
+  background: var(--booked);
+}
+
+.slot-chip.closed {
+  background: var(--closed);
+}
+
+.slot-main {
+  display: grid;
+  gap: 1px;
+}
+
+.slot-main strong {
+  font-size: 12px;
+}
+
+.slot-main small,
+.slot-status {
+  color: #3f4a4f;
+  font-size: 11px;
+}
+
+.slot-status {
+  max-width: 48%;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-weight: 800;
+}
+
+.side-panel {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+}
+
+.selected-slot {
+  border: 1px solid #b9d6cc;
+  border-radius: 6px;
+  padding: 10px;
+  background: #eef7f3;
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.quota-box {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #c9d7df;
+  border-radius: 6px;
+  padding: 10px;
+  background: #f7fafb;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.quota-box strong {
+  color: var(--accent-dark);
+}
+
+.quota-box span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.quota-box.warning {
+  border-color: #efb4b4;
+  background: #fff4f4;
+}
+
+.quota-box.warning strong,
+.quota-box.warning span {
+  color: #9f2c2c;
+}
+
+.my-reservations {
+  margin-top: 22px;
+}
+
+.reservation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.reservation-item div {
+  display: grid;
+  gap: 2px;
+}
+
+.reservation-item small {
+  color: var(--muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 18px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend .available {
+  background: var(--open);
+}
+
+.legend .closed {
+  background: var(--closed);
+}
+
+.legend .booked {
+  background: var(--booked);
+}
+
+form {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #fff;
+  color: var(--ink);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.message {
+  min-height: 24px;
+  margin-top: 12px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.message.error {
+  color: var(--danger);
+}
+
+.narrow-page {
+  max-width: 680px;
+}
+
+.admin-content {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.availability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.availability-month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.availability-date {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.availability-date.active,
+.availability-date:hover {
+  border-color: var(--accent);
+  background: #eef7f3;
+  color: var(--accent-dark);
+}
+
+.availability-date span {
+  font-size: 12px;
+}
+
+.slot-editor {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.slot-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.slot-admin-toggle {
+  display: grid;
+  gap: 3px;
+  min-height: 72px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.slot-admin-toggle.open {
+  border-color: #96c48d;
+  background: #edf8ea;
+}
+
+.slot-admin-toggle.closed {
+  border-color: #d79b9b;
+  background: #fdecec;
+}
+
+.slot-admin-toggle small,
+.slot-admin-toggle span {
+  font-size: 12px;
+}
+
+.default-slot-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.default-day {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.default-day div {
+  display: grid;
+  gap: 6px;
+}
+
+.member-search-results {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.member-result-card {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(180px, 1.4fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+}
+
+.member-result-card h3,
+.member-result-card p {
+  margin-bottom: 0;
+}
+
+.member-result-card p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.member-result-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.member-list-panel summary {
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.member-list-panel[open] summary {
+  margin-bottom: 14px;
+}
+
+.availability-day {
+  display: grid;
+  gap: 4px;
+  min-height: 82px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+}
+
+.availability-day.open {
+  border-color: #96c48d;
+  background: #edf8ea;
+}
+
+.availability-day.closed {
+  border-color: #d79b9b;
+  background: #fdecec;
+}
+
+.availability-day span,
+.availability-day small {
+  font-size: 12px;
+}
+
+.band-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.band-roster-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+}
+
+.band-roster-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.band-roster-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.band-roster-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.check-row input {
+  width: auto;
+  min-height: auto;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 8px;
+  text-align: left;
+}
+
+th {
+  background: #edf1ef;
+}
+
+.request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .page-grid,
+  .portal-grid,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-header,
+  .section-head,
+  .admin-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .portal,
+  .narrow-page,
+  .admin-page,
+  .page-grid {
+    padding: 12px 10px 28px;
+  }
+
+  .panel,
+  .portal-card {
+    padding: 14px;
+  }
+
+  .portal-hero {
+    min-height: 220px;
+    padding: 22px;
+  }
+
+  .calendar {
+    display: grid;
+    border: 0;
+    overflow: visible;
+  }
+
+  .weekday {
+    display: none;
+  }
+
+  .day {
+    min-height: auto;
+  }
+
+  .day-tabs {
+    grid-template-columns: repeat(14, 78px);
+    margin: 0 -2px;
+  }
+
+  .slot-chip {
+    min-height: 44px;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .slot-main strong {
+    font-size: 13px;
+  }
+
+  .slot-status {
+    font-size: 12px;
+  }
+
+  .member-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .member-result-actions {
+    justify-content: stretch;
+  }
+
+  .member-result-actions button {
+    width: 100%;
+  }
+}

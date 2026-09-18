@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>軽音楽部 音楽室ポータル</title>
+    <link rel="stylesheet" href="styles.css">
+    <script defer src="app.js"></script>
+    <meta name="description" content="軽音楽部の音楽室予約・バンド申請・部員管理">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  </head>
+  <body data-page="portal">
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Keion Practice Room</p>
+        <h1>音楽室ポータル</h1>
+      </div>
+      <span class="status-pill" id="portalStatus">ログイン確認中</span>
+    </header>
+
+    <main class="portal">
+      <section class="panel" id="loginPanel">
+        <h2>ログイン</h2>
+        <form id="loginForm">
+          <label>学籍番号<input name="studentId" autocomplete="username" required></label>
+          <label>パスワード<input type="password" name="password" autocomplete="current-password" required></label>
+          <button type="submit">ポータルに入る</button>
+        </form>
+        <p class="hint">初回利用の場合は新規登録をしてください。</p>
+        <a class="text-link inline-link" href="register.html">新規登録ページへ</a>
+        <div class="message" id="loginMessage"></div>
+      </section>
+
+      <section class="portal-content hidden" id="portalContent">
+        <section class="portal-hero">
+          <div>
+            <h2 id="welcomeTitle">予約・申請をここから行えます</h2>
+            <p>空き状況の確認、予約、バンド作成・解散申請をまとめて行えます。</p>
+          </div>
+        </section>
+
+        <section class="portal-grid" aria-label="メニュー">
+          <a class="portal-card" href="reservation.html">
+            <span>予約ページ</span>
+            <strong>音楽室を予約する</strong>
+            <small>バンド予約・個人予約に対応</small>
+          </a>
+          <a class="portal-card" href="requests.html">
+            <span>申請ページ</span>
+            <strong>バンド作成・解散</strong>
+            <small>メンバー情報を添えて申請</small>
+          </a>
+          <a class="portal-card admin-only hidden" href="admin/manage-member/index.html">
+            <span>運営ページ</span>
+            <strong>予約管理</strong>
+            <small>予約制約、使用可否、月間利用状況</small>
+          </a>
+          <a class="portal-card admin-only hidden" href="admin/manage-booking/index.html">
+            <span>運営ページ</span>
+            <strong>部員・申請管理</strong>
+            <small>部員検索、申請一覧、CSV取込</small>
+          </a>
+        </section>
+
+        <button type="button" class="secondary logout-button" id="logoutButton">ログアウト</button>
+      </section>
+    </main>
+  </body>
+</html>
