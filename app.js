@@ -80,6 +80,7 @@ async function loadAll() { Object.assign(state, await api('state')); }
 function initPortalPage() {
   document.querySelector('#loginForm').addEventListener('submit', submitLogin);
   document.querySelector('#logoutButton').addEventListener('click', logout);
+  document.querySelector('#passwordForm').addEventListener('submit', submitPasswordChange);
   if(state.needsSetup) {
     document.querySelector('#loginPanel h2').textContent='最初の管理者を設定';
     const form=document.querySelector('#loginForm');
@@ -107,6 +108,20 @@ function renderPortal() {
 
 async function submitLogin(event) { return runForm(event, async (form) => {
   await api(state.needsSetup ? 'setup' : 'login',Object.fromEntries(new FormData(form)));await loadAll();renderPortal();
+}); }
+
+async function submitPasswordChange(event) { return runForm(event, async (form, message) => {
+  const body=Object.fromEntries(new FormData(form));
+  if(body.newPassword!==body.confirmPassword)throw new Error('新しいパスワードと確認入力が一致しません');
+  await api('password/change',body);
+  form.reset();
+  document.querySelector('#passwordSettings').open=false;
+  await loadAll();
+  renderPortal();
+  document.querySelector('#loginForm').reset();
+  setMessage(message,'');
+  setMessage(document.querySelector('#loginMessage'),'パスワードを変更しました。新しいパスワードで再ログインしてください。');
+  document.querySelector('#loginForm [name=studentId]').focus();
 }); }
 
 function initRegisterPage() {

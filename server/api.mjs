@@ -24,7 +24,8 @@ async function getUser(request,db){
 function cookie(request,token,maxAge=604800){return `keion_session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${new URL(request.url).protocol==='https:'?'; Secure':''}`;}
 async function sessionResponse(request,db,user){
   const token=randomToken();
-  await db.batch([db.statement('DELETE FROM sessions WHERE expires_at<=?',Date.now()),db.statement('INSERT INTO sessions(token_hash,student_id,expires_at) VALUES(?,?,?)',await digest(token),user.student_id,Date.now()+604800000)]);
+  const result=await db.batch([db.statement('DELETE FROM sessions WHERE expires_at<=?',Date.now()),db.statement('INSERT INTO sessions(token_hash,student_id,expires_at) SELECT ?,?,? WHERE EXISTS(SELECT 1 FROM members WHERE student_id=? AND password_hash=?)',await digest(token),user.student_id,Date.now()+604800000,user.student_id,user.password_hash)]);
+  if(!result[1].meta.changes)fail('パスワードが更新されています。再ログインしてください',401);
   return json({user:{student_id:user.student_id,name:user.name,role:user.role}},200,{'Set-Cookie':cookie(request,token)});
 }
 async function rateLimit(db,key){
@@ -79,7 +80,7 @@ async function handle(request,env){
       db.statement('INSERT INTO settings(id,personal_open_days,monthly_band_limit,monthly_personal_limit,weekly_open_slots) VALUES(1,3,8,4,?) ON CONFLICT(id) DO NOTHING',JSON.stringify(DEFAULT_SETTINGS.weekly_open_slots))
     ]);
     if(!result[0].meta.changes)fail('初期設定は完了しています',409);
-    return sessionResponse(request,db,{student_id:id,name,role:'admin'});
+    return sessionResponse(request,db,{student_id:id,name,role:'admin',password_hash:hash});
   }
   if(path==='/api/login'){
     const id=student(body.studentId);
@@ -98,7 +99,7 @@ async function handle(request,env){
     const hash=await hashPassword(password(body.password));
     const result=await db.run('UPDATE members SET password_hash=?,invitation_hash=NULL WHERE student_id=? AND password_hash IS NULL AND invitation_hash=?',hash,id,member.invitation_hash);
     if(!result.meta.changes)fail('登録済みです',409);
-    return sessionResponse(request,db,member);
+    return sessionResponse(request,db,{...member,password_hash:hash});
   }
   if(path==='/api/logout'){
     const token=request.headers.get('cookie')?.match(/keion_session=([a-f0-9]{64})/)?.[1];
@@ -106,6 +107,22 @@ async function handle(request,env){
     return json({ok:true},200,{'Set-Cookie':cookie(request,'',0)});
   }
   loggedIn(user);
+  if(path==='/api/password/change'){
+    await rateLimit(db,'password:'+user.student_id);
+    const next=password(body.newPassword);
+    if(next!==body.confirmPassword)fail('新しいパスワードと確認入力が一致しません');
+    const member=await db.one('SELECT password_hash FROM members WHERE student_id=?',user.student_id);
+    if(typeof body.currentPassword!=='string'||body.currentPassword.length>128||!await verifyPassword(body.currentPassword,member?.password_hash))fail('現在のパスワードが正しくありません',403);
+    if(next===body.currentPassword)fail('現在とは異なるパスワードを設定してください');
+    const hash=await hashPassword(next);
+    const result=await db.batch([
+      db.statement('UPDATE members SET password_hash=? WHERE student_id=? AND password_hash=?',hash,user.student_id,member.password_hash),
+      db.statement('DELETE FROM sessions WHERE student_id=? AND EXISTS(SELECT 1 FROM members WHERE student_id=? AND password_hash=?)',user.student_id,user.student_id,hash),
+      db.statement('DELETE FROM login_attempts WHERE key=? AND EXISTS(SELECT 1 FROM members WHERE student_id=? AND password_hash=?)','password:'+user.student_id,user.student_id,hash),
+    ]);
+    if(!result[0].meta.changes)fail('パスワードが更新されています。再ログインしてください',409);
+    return json({ok:true},200,{'Set-Cookie':cookie(request,'',0)});
+  }
   if(path==='/api/reservations'){
     const date=dateKey(body.date),slot=text(body.slot_id,'コマ'),type=body.reservation_type;
     if(!SLOT_IDS.includes(slot)||!['personal','band'].includes(type))fail('予約内容が正しくありません');

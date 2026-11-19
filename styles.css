@@ -83,6 +83,23 @@ h2 {
   margin-top: 18px;
 }
 
+.password-settings {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.password-settings summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 0;
+}
+
+.password-settings form {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 12px;
+}
+
 .portal,
 .narrow-page,
 .admin-page,

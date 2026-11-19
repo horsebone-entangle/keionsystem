@@ -107,3 +107,25 @@ test('PostgreSQL batch rolls back every statement on failure', async t => {
   assert.equal((await db.all('SELECT * FROM bands')).length, 0);
   assert.deepEqual(postgresStatement('SELECT ? AS value', ["' OR 1=1"]), { text: 'SELECT $1 AS value', values: ["' OR 1=1"] });
 });
+
+test('PostgreSQL password change revokes sessions and accepts only the new password', async t => {
+  const { call, member, db, admin } = await fixture(t);
+  const oldHash=(await db.one('SELECT password_hash FROM members WHERE student_id=?','s001')).password_hash;
+  const second=await call('login',{studentId:'s001',password:'member-password'});
+  const body={currentPassword:'member-password',newPassword:'new-member-password',confirmPassword:'new-member-password'};
+  assert.equal((await call('password/change',{...body,currentPassword:'incorrect'},member)).status,403);
+  assert.equal((await call('password/change',body,member)).status,200);
+  assert.equal((await call('state',undefined,member)).body.user,null);
+  assert.equal((await call('state',undefined,second.cookie)).body.user,null);
+  assert.equal((await call('state',undefined,admin)).body.user.role,'admin');
+  assert.equal((await call('login',{studentId:'s001',password:'member-password'})).status,401);
+  assert.equal((await call('login',{studentId:'s001',password:'new-member-password'})).status,200);
+  const hash=(await db.one('SELECT password_hash FROM members WHERE student_id=?','s001')).password_hash;
+  assert.notEqual(hash,oldHash);
+  assert.match(hash,/^pbkdf2-sha256/);
+  const changed=await Promise.all([
+    call('password/change',{currentPassword:'test-admin-password',newPassword:'next-admin-password',confirmPassword:'next-admin-password'},admin),
+    call('password/change',{currentPassword:'test-admin-password',newPassword:'other-admin-password',confirmPassword:'other-admin-password'},admin),
+  ]);
+  assert.equal(changed.filter(x=>x.status===200).length,1);
+});

@@ -8,6 +8,7 @@ import { api, todayJST } from '../server/api.mjs';
 import { SLOT_IDS } from '../server/constants.mjs';
 import { createWorker } from '../server/worker.mjs';
 import { loadAssets } from '../scripts/assets.mjs';
+import { hashPassword } from '../server/crypto.mjs';
 
 function client(db){return async(endpoint,body,cookie='',extra={})=>{
  const response=await api(new Request('http://localhost/api/'+endpoint,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',cookie,...extra},body:body===undefined?undefined:JSON.stringify(body)}),{DB:db.DB,LOCAL_DEV:true});
@@ -59,6 +60,46 @@ test('booking rules, simultaneous slot requests, cancellation ownership and mont
  await call('room-days',{date:booking.date,is_open:true},admin);
  await call('room-slots',{date:booking.date,slot_id:'p2a',is_open:false},admin);
  assert.equal((await call('reservations',{...booking,slot_id:'p2a'},other.cookie)).status,409);
+});
+
+test('password change requires current password, logs out all sessions and preserves other accounts',async t=>{
+ const {call,admin}=await fixture(t);const member=await addMember(call,admin);
+ const second=await call('login',{studentId:'s001',password:'member-password'});
+ const body={currentPassword:'member-password',newPassword:'replacement-password',confirmPassword:'replacement-password',studentId:'owner'};
+ assert.equal((await call('password/change',body)).status,401);
+ assert.equal((await call('password/change',{...body,currentPassword:'wrong'},member.cookie)).status,403);
+ assert.equal((await call('password/change',{...body,newPassword:'short',confirmPassword:'short'},member.cookie)).status,400);
+ assert.equal((await call('password/change',{...body,confirmPassword:'mismatch'},member.cookie)).status,400);
+ assert.equal((await call('password/change',{...body,newPassword:'member-password',confirmPassword:'member-password'},member.cookie)).status,400);
+ assert.equal((await call('password/change',body,member.cookie,{origin:'https://evil.example'})).status,403);
+ const changed=await call('password/change',body,member.cookie);assert.equal(changed.status,200);
+ assert.equal(changed.cookie,'keion_session=');
+ assert.equal((await call('state',undefined,member.cookie)).body.user,null);
+ assert.equal((await call('state',undefined,second.cookie)).body.user,null);
+ assert.equal((await call('login',{studentId:'s001',password:'member-password'})).status,401);
+ assert.equal((await call('login',{studentId:'s001',password:'replacement-password'})).status,200);
+ assert.equal((await call('state',undefined,admin)).body.user.role,'admin');
+ assert.equal((await call('login',account)).status,200);
+});
+
+test('password change throttles repeated current-password guesses',async t=>{
+ const {call,admin}=await fixture(t);
+ const body={currentPassword:'wrong',newPassword:'replacement-password',confirmPassword:'replacement-password'};
+ for(let i=0;i<15;i++)assert.equal((await call('password/change',body,admin)).status,403);
+ assert.equal((await call('password/change',body,admin)).status,429);
+});
+
+test('in-flight login cannot create a session after the password changes',async t=>{
+ const {db,call}=await fixture(t);
+ const replacement=await hashPassword('concurrent-password');
+ const batch=db.DB.batch;
+ db.DB.batch=statements=>{
+   db.DB.batch=batch;
+   db.sqlite.prepare('UPDATE members SET password_hash=? WHERE student_id=?').run(replacement,'owner');
+   return batch(statements);
+ };
+ assert.equal((await call('login',account)).status,401);
+ assert.equal((await call('login',{...account,password:'concurrent-password'})).status,200);
 });
 test('atomic band approvals, membership changes, repeated review and dissolution',async t=>{
  const {db,call,admin}=await fixture(t);await openAll(call,admin);

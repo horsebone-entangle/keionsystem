@@ -62,6 +62,16 @@
           </a>
         </section>
 
+        <details class="password-settings" id="passwordSettings">
+          <summary>パスワード変更</summary>
+          <form id="passwordForm">
+            <label>現在のパスワード<input type="password" name="currentPassword" autocomplete="current-password" maxlength="128" required></label>
+            <label>新しいパスワード（10〜128文字）<input type="password" name="newPassword" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+            <label>新しいパスワード（確認）<input type="password" name="confirmPassword" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+            <button type="submit">パスワードを変更</button>
+          </form>
+          <div class="message" id="passwordMessage" role="status" aria-live="polite"></div>
+        </details>
         <button type="button" class="secondary logout-button" id="logoutButton">ログアウト</button>
       </section>
     </main>
