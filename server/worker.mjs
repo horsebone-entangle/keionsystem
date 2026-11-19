@@ -2,7 +2,7 @@ import { api } from './api.mjs';
 export function createWorker(assets) {
   return {async fetch(request,env) {
     const url=new URL(request.url);
-    if(url.pathname.startsWith('/api/'))return api(request,env);
+    if(url.pathname.startsWith('/api/'))return api(request,{...env,TRUST_PLATFORM_OWNER:!!env.DB&&!env.LOCAL_DEV});
     if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
     let path=url.pathname;
     if(path==='/')path='/index.html';

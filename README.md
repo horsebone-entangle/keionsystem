@@ -1,6 +1,6 @@
 # 軽音楽部 音楽室予約システム
 
-既存のHTML画面を活かし、サーバーAPIと永続データベースを実装しています。本番はSitesのCloudflare Worker + D1、ローカルはNode.js 24 + SQLiteで動作します。デモデータへのフォールバックはありません。
+既存のHTML画面を活かし、サーバーAPIと永続データベースを実装しています。Vercel + Supabase PostgreSQLに対応しています。従来のSites Worker + D1とローカルSQLiteも保持しています。Node.js 24以降を使用し、デモデータへのフォールバックはありません。公開手順は`DEPLOY.md`を参照してください。
 
 ## 利用開始
 
@@ -33,6 +33,20 @@ pnpm build
 
 起動先は `http://127.0.0.1:4173`。データはGit管理対象外の `.local/keion.sqlite` に保存されます。ローカルのデータやテストアカウントは本番へ送信しません。
 
+## Supabase migration: step 1
+
+The server-only PostgreSQL connection module is `server/postgres.mjs`.
+Vercel uses this module through `api/index.js` and `server/postgres-database.mjs`.
+Local development uses PostgreSQL when DATABASE_URL is configured, otherwise SQLite.
+Copy `.env.example` to `.env` locally and set DATABASE_URL to your Supabase
+transaction pooler URI. Percent-encode the password component when necessary.
+Never put this value in browser JavaScript or commit it to Git.
+
+Run `pnpm db:check` to perform a read-only `SELECT 1` connection check.
+No tables are created or modified. TLS certificate verification stays enabled.
+If a custom CA is required, set DATABASE_CA_CERT to its PEM contents.
+For Vercel, set DATABASE_URL in the server environment settings instead of uploading `.env`.
+
 ## CSV
 
 ```csv
@@ -53,4 +67,4 @@ roleはmemberまたはadmin。1回300名まで。登録済みアカウントの�
 
 スキーマ変更後は `pnpm db:generate`。適用済みのマイグレーションは変更せず、新規分を追加します。
 
-`supabase/schema.sql`、`config*.js`、`vercel.json` は旧試作版の資料として保持しています。現在のアプリは使用・配信しません。旧SQLは平文パスワードと匿名書き込みを含むため実行しないでください。既存Supabaseデータの移行はこの実装には含まれません。
+`supabase/schema.sql`と`config*.js`は旧試作版の資料で、現在のアプリは使用・配信しません。旧SQLは平文パスワードと匿名書き込みを含むため実行しないでください。PostgreSQLの新スキーマとトリガーは`supabase/migrations/`、Vercel設定は`vercel.json`です。`db/schema.ts`と`drizzle/`は従来のSQLite/D1専用です。既存データの移行はこの実装には含まれません。

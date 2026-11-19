@@ -5,3 +5,9 @@ dist/
 .sites-runtime/
 *.tar.gz
 .env
+.env*
+.env.*
+!.env.example
+public/
+.vercel/
+.vercel

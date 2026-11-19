@@ -1,4 +1,5 @@
 export function database(env) {
+  if (env.DATABASE) return env.DATABASE;
   if (!env.DB) throw new Error('DATABASE_UNAVAILABLE');
   return {
     statement(sql, ...args) { return env.DB.prepare(sql).bind(...args); },

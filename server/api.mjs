@@ -28,7 +28,7 @@ async function sessionResponse(request,db,user){
   return json({user:{student_id:user.student_id,name:user.name,role:user.role}},200,{'Set-Cookie':cookie(request,token)});
 }
 async function rateLimit(db,key){
-  const result=await db.one('INSERT INTO login_attempts(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN reset_at<=? THEN 1 ELSE count+1 END, reset_at=CASE WHEN reset_at<=? THEN excluded.reset_at ELSE reset_at END RETURNING count',key,Date.now()+900000,Date.now(),Date.now());
+  const result=await db.one('INSERT INTO login_attempts(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN login_attempts.reset_at<=? THEN 1 ELSE login_attempts.count+1 END, reset_at=CASE WHEN login_attempts.reset_at<=? THEN excluded.reset_at ELSE login_attempts.reset_at END RETURNING count',key,Date.now()+900000,Date.now(),Date.now());
   if(result.count>15)fail('試行回数が多いため、15分ほど待ってから再試行してください',429);
 }
 async function bodyOf(request){
@@ -42,6 +42,7 @@ async function entries(db,raw){
   if(!Array.isArray(raw)||raw.length<1||raw.length>30)fail('バンドメンバーは1〜30名で入力してください');
   const out=[];
   for(const entry of raw){
+    if(!entry||typeof entry!=='object'||Array.isArray(entry))fail('メンバー情報の形式が正しくありません');
     const id=student(entry.student_id), name=text(entry.name,'氏名');
     if(out.some(x=>x.student_id===id))fail('メンバーが重複しています');
     const member=await db.one('SELECT name FROM members WHERE student_id=?',id);
@@ -70,11 +71,12 @@ async function handle(request,env){
   const body=await bodyOf(request);
   if(path==='/api/setup'){
     // Hosted setup requires the platform's verified owner-private identity. Local setup is loopback only.
-    if(!request.headers.get('oai-authenticated-user-id')&&!(env.LOCAL_DEV&&['localhost','127.0.0.1'].includes(url.hostname)))fail('サイト所有者としてサインインしてください',403);
+    if(!env.TRUST_PLATFORM_OWNER&&!env.LOCAL_DEV)fail('初期管理者はサーバーの専用コマンドで作成してください',403);
+    if(!(env.TRUST_PLATFORM_OWNER&&request.headers.get('oai-authenticated-user-id'))&&!(env.LOCAL_DEV&&['localhost','127.0.0.1'].includes(url.hostname)))fail('サイト所有者としてサインインしてください',403);
     const id=student(body.studentId),name=text(body.name,'氏名'),hash=await hashPassword(password(body.password));
     const result=await db.batch([
       db.statement("INSERT INTO members(student_id,name,role,password_hash,created_at) SELECT ?,?,'admin',?,? WHERE NOT EXISTS(SELECT 1 FROM members)",id,name,hash,now()),
-      db.statement('INSERT OR IGNORE INTO settings(id,personal_open_days,monthly_band_limit,monthly_personal_limit,weekly_open_slots) VALUES(1,3,8,4,?)',JSON.stringify(DEFAULT_SETTINGS.weekly_open_slots))
+      db.statement('INSERT INTO settings(id,personal_open_days,monthly_band_limit,monthly_personal_limit,weekly_open_slots) VALUES(1,3,8,4,?) ON CONFLICT(id) DO NOTHING',JSON.stringify(DEFAULT_SETTINGS.weekly_open_slots))
     ]);
     if(!result[0].meta.changes)fail('初期設定は完了しています',409);
     return sessionResponse(request,db,{student_id:id,name,role:'admin'});
@@ -186,8 +188,8 @@ export async function api(request,env){
     const message=String(error.message||error);
     const known={E_SLOT_TAKEN:'このコマはすでに予約されています',E_MONTHLY_LIMIT:'月間予約上限に達しています',E_ROOM_CLOSED:'このコマは開放されていません',E_BAND_MEMBER:'有効な所属バンドのみ予約できます',E_DATE_RANGE:'予約できる日付の範囲外です',E_REQUEST_INVALID:'申請内容が現在の部員・バンド情報と一致しません'};
     for(const [key,value]of Object.entries(known))if(message.includes(key))return json({error:value},409);
-    if(message.includes('UNIQUE constraint'))return json({error:'同じ予約またはバンドがすでに登録されています'},409);
-    console.error('API failure',request.method,new URL(request.url).pathname,message);
+    if(message.includes('UNIQUE constraint')||error.code==='23505')return json({error:'同じ予約またはバンドがすでに登録されています'},409);
+    console.error('API failure',request.method,new URL(request.url).pathname);
     return json({error:'データを保存・取得できませんでした。時間をおいて再試行してください'},503);
   }
 }

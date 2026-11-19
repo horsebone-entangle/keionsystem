@@ -1,0 +1,12 @@
+.env
+.env*
+.env.*
+.local
+.git
+.pnpm-store
+node_modules
+dist
+*.tar.gz
+.openai
+.agents
+tests
