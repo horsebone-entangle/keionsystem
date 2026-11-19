@@ -34,7 +34,6 @@ async function rateLimit(db,key,limit=15){
 }
 async function authRateLimit(db,env,kind,id){
   const source=await digest(env.CLIENT_IP||'local');
-  await rateLimit(db,'source:'+source,100);
   const key=kind+':'+source+':'+id;
   await rateLimit(db,key);
   return key;

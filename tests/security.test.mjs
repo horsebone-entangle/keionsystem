@@ -93,14 +93,16 @@ test('security: attacker login failures do not lock a victim on another trusted 
   const {call}=await fixture(t);
   for(let i=0;i<15;i++)assert.equal((await call('login',{studentId:'owner',password:'wrong'})).status,401);
   assert.equal((await call('login',{studentId:'owner',password:'test-password-long'})).status,429);
+  assert.equal((await call('login',{studentId:'a',password:'test-password-long'})).status,200);
   assert.equal((await call('login',{studentId:'owner',password:'test-password-long'},'',{},'192.0.2.2')).status,200);
   assert.equal((await call('login',{studentId:'owner',password:'wrong'},'',{'x-forwarded-for':'192.0.2.2','x-real-ip':'192.0.2.2'})).status,429);
 });
 
-test('security: source-wide throttling prevents bypass by switching student IDs',async t=>{
+test('security: school network logins do not share an IP-wide attempt quota',async t=>{
   const {call}=await fixture(t);
   for(let i=0;i<100;i++)assert.equal((await call('login',{studentId:'missing_'+i,password:'wrong'},'',{},'192.0.2.99')).status,401);
-  assert.equal((await call('login',{studentId:'another_id',password:'wrong'},'',{},'192.0.2.99')).status,429);
+  assert.equal((await call('login',{studentId:'another_id',password:'wrong'},'',{},'192.0.2.99')).status,401);
+  assert.equal((await call('login',{studentId:'a',password:'test-password-long'},'',{},'192.0.2.99')).status,200);
 });
 
 test('security: malformed administrative CSV rows return 400 without partial changes',async t=>{
