@@ -12,6 +12,9 @@ test('Vercel build contains only public assets', () => {
   assert.ok(!files.includes('config.js'));
   const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
   assert.equal(config.outputDirectory, 'public');
+  const headers=config.headers[0].headers;
+  assert.ok(headers.some(x=>x.key==='X-Frame-Options'&&x.value==='DENY'));
+  assert.ok(headers.some(x=>x.key==='Content-Security-Policy'&&x.value.includes("frame-ancestors 'none'")));
 });
 
 test('Vercel API fails safely without connection credentials', async () => {

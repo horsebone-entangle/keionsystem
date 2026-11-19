@@ -101,6 +101,15 @@ test('in-flight login cannot create a session after the password changes',async 
  assert.equal((await call('login',account)).status,401);
  assert.equal((await call('login',{...account,password:'concurrent-password'})).status,200);
 });
+
+test('legacy login upgrades the password hash without changing the password or revoking existing sessions',async t=>{
+ const {db,call,admin}=await fixture(t);
+ const legacy=await hashPassword(account.password,'b'.repeat(64),100000);
+ db.sqlite.prepare('UPDATE members SET password_hash=? WHERE student_id=?').run(legacy,'owner');
+ assert.equal((await call('login',account)).status,200);
+ assert.match(db.sqlite.prepare('SELECT password_hash FROM members WHERE student_id=?').get('owner').password_hash,/^pbkdf2-sha256\$600000\$/);
+ assert.equal((await call('state',undefined,admin)).body.user.role,'admin');
+});
 test('atomic band approvals, membership changes, repeated review and dissolution',async t=>{
  const {db,call,admin}=await fixture(t);await openAll(call,admin);
  const a=await addMember(call,admin),b=await addMember(call,admin,'s002');

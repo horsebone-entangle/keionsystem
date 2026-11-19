@@ -1,5 +1,5 @@
 import { database } from './database.mjs';
-import { digest, hashPassword, verifyPassword, randomToken } from './crypto.mjs';
+import { digest, hashPassword, verifyPassword, passwordNeedsRehash, randomToken } from './crypto.mjs';
 import { SLOT_IDS, DEFAULT_SETTINGS } from './constants.mjs';
 
 class HttpError extends Error { constructor(status,message){super(message);this.status=status;} }
@@ -28,9 +28,16 @@ async function sessionResponse(request,db,user){
   if(!result[1].meta.changes)fail('パスワードが更新されています。再ログインしてください',401);
   return json({user:{student_id:user.student_id,name:user.name,role:user.role}},200,{'Set-Cookie':cookie(request,token)});
 }
-async function rateLimit(db,key){
+async function rateLimit(db,key,limit=15){
   const result=await db.one('INSERT INTO login_attempts(key,count,reset_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN login_attempts.reset_at<=? THEN 1 ELSE login_attempts.count+1 END, reset_at=CASE WHEN login_attempts.reset_at<=? THEN excluded.reset_at ELSE login_attempts.reset_at END RETURNING count',key,Date.now()+900000,Date.now(),Date.now());
-  if(result.count>15)fail('試行回数が多いため、15分ほど待ってから再試行してください',429);
+  if(result.count>limit)fail('試行回数が多いため、15分ほど待ってから再試行してください',429);
+}
+async function authRateLimit(db,env,kind,id){
+  const source=await digest(env.CLIENT_IP||'local');
+  await rateLimit(db,'source:'+source,100);
+  const key=kind+':'+source+':'+id;
+  await rateLimit(db,key);
+  return key;
 }
 async function bodyOf(request){
   if(!request.headers.get('content-type')?.startsWith('application/json'))fail('JSON形式で送信してください',415);
@@ -63,10 +70,10 @@ async function handle(request,env){
     if(!user)return json({user:null,needsSetup,settings:DEFAULT_SETTINGS,members:[],bands:[],bandMembers:[],roomDays:[],roomSlots:[],reservations:[],requests:[]});
     const first=todayJST().slice(0,7)+'-01', end=plusDays(todayJST(),220);
     const [settings,members,bands,bandMembers,roomDays,roomSlots,reservations,requests]=await Promise.all([
-      getSettings(db),db.all('SELECT student_id,name,role FROM members ORDER BY student_id'),db.all("SELECT * FROM bands WHERE status='active'"),db.all('SELECT * FROM band_members'),db.all('SELECT * FROM room_days WHERE date BETWEEN ? AND ?',first,end),db.all('SELECT * FROM room_slots WHERE date BETWEEN ? AND ?',first,end),db.all('SELECT r.*,b.name AS band_name FROM reservations r LEFT JOIN bands b ON b.id=r.band_id WHERE cancelled_at IS NULL AND date BETWEEN ? AND ?',first,end),
+      getSettings(db),user.role==='admin'?db.all('SELECT student_id,name,role FROM members ORDER BY student_id'):db.all('SELECT student_id,name,role FROM members WHERE student_id=?',user.student_id),db.all("SELECT * FROM bands WHERE status='active'"),user.role==='admin'?db.all('SELECT * FROM band_members'):db.all('SELECT * FROM band_members WHERE student_id=?',user.student_id),db.all('SELECT * FROM room_days WHERE date BETWEEN ? AND ?',first,end),db.all('SELECT * FROM room_slots WHERE date BETWEEN ? AND ?',first,end),db.all('SELECT r.*,b.name AS band_name FROM reservations r LEFT JOIN bands b ON b.id=r.band_id WHERE cancelled_at IS NULL AND date BETWEEN ? AND ?',first,end),
       user.role==='admin'?db.all('SELECT * FROM band_requests ORDER BY created_at DESC'):db.all('SELECT * FROM band_requests WHERE student_id=? ORDER BY created_at DESC',user.student_id)
     ]);
-    return json({user,needsSetup:false,settings,members,bands,bandMembers,roomDays:roomDays.map(x=>({...x,is_open:!!x.is_open})),roomSlots:roomSlots.map(x=>({...x,is_open:!!x.is_open})),reservations:reservations.map(x=>({...x,bands:{name:x.band_name}})),requests:requests.map(x=>({...x,member_entries:JSON.parse(x.member_entries)}))});
+    return json({user,needsSetup:false,settings,members,bands,bandMembers,roomDays:roomDays.map(x=>({...x,is_open:!!x.is_open})),roomSlots:roomSlots.map(x=>({...x,is_open:!!x.is_open})),reservations:reservations.map(x=>user.role==='admin'||x.student_id===user.student_id?{...x,bands:{name:x.band_name}}:{id:null,date:x.date,slot_id:x.slot_id,reservation_type:x.reservation_type,student_id:null,band_id:x.band_id,bands:{name:x.band_name}}),requests:requests.map(x=>({...x,member_entries:JSON.parse(x.member_entries)}))});
   }
   if(request.method!=='POST')fail('ページが見つかりません',404);
   const body=await bodyOf(request);
@@ -84,15 +91,21 @@ async function handle(request,env){
   }
   if(path==='/api/login'){
     const id=student(body.studentId);
-    await rateLimit(db,'login:'+id);
+    const rateKey=await authRateLimit(db,env,'login',id);
     const member=await db.one('SELECT * FROM members WHERE student_id=?',id);
     const valid=typeof body.password==='string'&&body.password.length<=128&&await verifyPassword(body.password,member?.password_hash);
     if(!member||!valid)fail('学籍番号またはパスワードが正しくありません',401);
-    await db.run('DELETE FROM login_attempts WHERE key=?','login:'+id);
+    if(passwordNeedsRehash(member.password_hash)){
+      const hash=await hashPassword(body.password);
+      const upgraded=await db.run('UPDATE members SET password_hash=? WHERE student_id=? AND password_hash=?',hash,id,member.password_hash);
+      if(!upgraded.meta.changes)fail('認証情報が更新されました。もう一度ログインしてください',401);
+      member.password_hash=hash;
+    }
+    await db.run('DELETE FROM login_attempts WHERE key=?',rateKey);
     return sessionResponse(request,db,member);
   }
   if(path==='/api/register'){
-    const id=student(body.studentId);await rateLimit(db,'register:'+id);
+    const id=student(body.studentId);await authRateLimit(db,env,'register',id);
     const member=await db.one('SELECT * FROM members WHERE student_id=?',id);
     if(!member||member.password_hash||!member.invitation_hash||member.invitation_hash!==await digest(String(body.invitationCode||'')))fail('学籍番号・招待コードを確認してください。登録済みの場合はログインしてください',403);
     if(text(body.name,'氏名')!==member.name)fail('登録済みの氏名と一致しません');
@@ -178,6 +191,7 @@ async function handle(request,env){
     if(!Array.isArray(body.members)||!body.members.length||body.members.length>300)fail('CSVは1〜300名ずつ取り込んでください');
     const statements=[],invitations=[],seen=new Set();
     for(const raw of body.members){
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))fail('CSVの各行は部員情報のオブジェクトで指定してください');
       const id=student(raw.student_id),name=text(raw.name,'氏名'),role=raw.role||'member';
       if(seen.has(id))fail(`${id} が重複しています`);seen.add(id);
       if(!['member','admin'].includes(role))fail(`${id} の権限が正しくありません`);

@@ -129,3 +129,17 @@ test('PostgreSQL password change revokes sessions and accepts only the new passw
   ]);
   assert.equal(changed.filter(x=>x.status===200).length,1);
 });
+
+test('PostgreSQL state hides other identities and booking owners, and rejects malformed CSV',async t=>{
+  const {call,member,admin}=await fixture(t);
+  assert.equal((await call('reservations',{date:todayJST(),slot_id:'p1a',reservation_type:'personal'},admin)).status,201);
+  const state=(await call('state',undefined,member)).body;
+  assert.equal(state.members.length,1);
+  assert.equal(state.members[0].student_id,'s001');
+  assert.equal(state.reservations[0].student_id,null);
+  assert.equal(state.reservations[0].id,null);
+  const full=(await call('state',undefined,admin)).body;
+  assert.equal(full.members.length,2);
+  assert.equal(full.reservations[0].student_id,'owner');
+  assert.equal((await call('members/import',{members:[null]},admin)).status,400);
+});
